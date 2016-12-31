@@ -20,11 +20,12 @@ usage() {
     echo "       exenv install -l|--list"
     echo "       exenv install -a|-add VERSION"
     echo
-    echo "  -l/--list        List all available versions"
-    echo "  -k/--keep        Keep source tree in \$EXENV_BUILD_ROOT after installation"
-    echo "                   (defaults to ${EXENV_ROOT}/sources)"
-    echo "  -v/--verbose     Verbose mode: print compilation status to stdout"
-    echo "  -a/--add         Adds version with given sha into list of available versions"
+    echo "  -l/--list          List all available versions"
+    echo "  -s/--skip-existing Skip if the version appears to be installed already"
+    echo "  -k/--keep          Keep source tree in \$EXENV_BUILD_ROOT after installation"
+    echo "                     (defaults to ${EXENV_ROOT}/sources)"
+    echo "  -v/--verbose       Verbose mode: print compilation status to stdout"
+    echo "  -a/--add           Adds version with given sha into list of available versions"
     echo
   } >&2
 
@@ -33,6 +34,7 @@ usage() {
 
 unset KEEP
 unset VERBOSE
+unset SKIP_EXISTING
 
 parse_options "$@"
 for option in "${OPTIONS[@]}"; do
@@ -53,6 +55,9 @@ for option in "${OPTIONS[@]}"; do
     ;;
   "k" | "keep" )
     [ -n "${EXENV_BUILD_ROOT}" ] || EXENV_BUILD_ROOT="${EXENV_ROOT}/sources"
+    ;;
+  "s" | "skip-existing" )
+    SKIP_EXISTING=true
     ;;
   "v" | "verbose" )
     VERBOSE="-v"
@@ -80,6 +85,12 @@ PREFIX="${EXENV_ROOT}/versions/${VERSION_NAME}"
 if [ -n "${EXENV_BUILD_ROOT}" ]; then
   export ELIXIR_BUILD_BUILD_PATH="${EXENV_BUILD_ROOT}/${VERSION_NAME}"
   KEEP="-k"
+fi
+
+if [ -d "${PREFIX}/bin" ]; then
+  if [ -n "$SKIP_EXISTING" ]; then
+    exit 0
+  fi
 fi
 
 elixir-build $KEEP $VERBOSE "$DEFINITION" "$PREFIX"
